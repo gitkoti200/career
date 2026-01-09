@@ -1,110 +1,108 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { CheckCircle, Clock, ChevronDown, ChevronUp, BookOpen, Video } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import React, { useState, useEffect } from 'react';
+import { Briefcase, ArrowRight } from 'lucide-react';
+import RoadmapDetail from '../components/RoadmapDetail';
+import { roadmapData } from '../data/roadmapData';
+import supabase from '../supabaseClient';
 
 const Roadmap = ({ session }) => {
-    const [roadmap, setRoadmap] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [expandedWeek, setExpandedWeek] = useState(null);
+  const [selectedCareer, setSelectedCareer] = useState(null);
+  const [careers, setCareers] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    // Default to the first career if none selected in session
-    const careerName = sessionStorage.getItem('selectedCareer') || "Full Stack Developer";
+  useEffect(() => {
+    // Initialize careers from roadmapData
+    const careerList = Object.values(roadmapData);
+    setCareers(careerList);
+  }, []);
 
-    useEffect(() => {
-        const fetchRoadmap = async () => {
-            // 1. Check if we already have it in DB? 
-            // For this prototype, we'll hit the 'AI' api every time to get the fresh structure
-            // or check Supabase if implemented fully.
-            try {
-                const userId = session.user.id;
-                const res = await axios.post('/api/roadmap', {
-                    career: careerName,
-                    user_id: userId
-                });
-                setRoadmap(res.data);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRoadmap();
-    }, [careerName, session.user.id]);
+  const handleSelectCareer = (careerId) => {
+    const career = roadmapData[careerId];
+    if (career) {
+      setSelectedCareer(career);
+      // Save to session storage
+      sessionStorage.setItem('selectedCareer', career.title);
+    }
+  };
 
-    const toggleWeek = (index) => {
-        setExpandedWeek(expandedWeek === index ? null : index);
-    };
+  const handleBack = () => {
+    setSelectedCareer(null);
+  };
 
-    if (loading) return <div className="p-10 text-center text-xl text-primary animate-pulse">Generating your AI Personalized Roadmap...</div>;
-
+  if (!session) {
     return (
-        <div className="max-w-5xl mx-auto py-10 px-4">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-extrabold text-gray-900">Your Path to becoming a <span className="text-primary">{careerName}</span></h1>
-                <p className="mt-4 text-gray-600 max-w-2xl mx-auto">This curated timeline is designed based on your current skills and gaps. Follow the weeks to master the craft.</p>
-            </div>
-
-            <div className="relative border-l-4 border-indigo-100 ml-4 md:ml-10 space-y-8">
-                {roadmap.map((step, idx) => (
-                    <div key={idx} className="relative pl-8 md:pl-12">
-                        {/* Circle Indicator */}
-                        <div className={`absolute -left-[22px] md:-left-[26px] top-0 rounded-full h-10 w-10 md:h-12 md:w-12 flex items-center justify-center text-white font-bold text-lg shadow-lg border-4 border-white
-                            ${expandedWeek === idx ? 'bg-primary scale-110' : 'bg-gray-400'} transition-all duration-300`}>
-                            {step.week}
-                        </div>
-
-                        {/* Card Content */}
-                        <div
-                            onClick={() => toggleWeek(idx)}
-                            className={`bg-white rounded-xl shadow-md border cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden
-                            ${expandedWeek === idx ? 'ring-2 ring-primary border-transparent' : 'border-gray-100'}`}
-                        >
-                            <div className="p-6 flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">{step.topic}</h3>
-                                    <p className="text-gray-500 mt-1">{step.action}</p>
-                                </div>
-                                <div>
-                                    {expandedWeek === idx ? <ChevronUp className="text-primary" /> : <ChevronDown className="text-gray-400" />}
-                                </div>
-                            </div>
-
-                            {/* Expanded Details */}
-                            {expandedWeek === idx && (
-                                <div className="bg-indigo-50 px-6 py-6 border-t border-indigo-100">
-                                    <p className="text-gray-700 mb-4">{step.details}</p>
-
-                                    {step.resources && step.resources.length > 0 && (
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Recommended Resources</h4>
-                                            {step.resources.map((res, rIdx) => (
-                                                <div key={rIdx} className="flex items-center bg-white p-3 rounded shadow-sm border border-gray-100 hover:bg-gray-50">
-                                                    {res.type === 'Video' ? <Video className="w-5 h-5 text-red-500 mr-3" /> : <BookOpen className="w-5 h-5 text-blue-500 mr-3" />}
-                                                    {res.link ? (
-                                                        <a href={res.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-medium hover:underline">
-                                                            {res.title}
-                                                        </a>
-                                                    ) : (
-                                                        <span className="text-gray-800 font-medium">{res.title}</span>
-                                                    )}
-                                                    <span className="ml-auto text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">{res.type}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <div className="mt-6 flex items-center text-sm text-indigo-700 font-medium">
-                                        <Clock className="w-4 h-4 mr-1" /> Estimated time: 10-15 hours
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Please sign in</h1>
+          <p className="text-gray-600">You need to be signed in to view your career roadmap</p>
         </div>
+      </div>
     );
+  }
+
+  if (selectedCareer) {
+    return <RoadmapDetail career={selectedCareer} onBack={handleBack} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="space-y-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold text-gray-900">Career Roadmaps</h1>
+            <p className="text-lg text-gray-600">Select a career path to view your personalized learning roadmap</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {careers.map((career) => (
+              <div
+                key={career.id}
+                className="bg-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105 overflow-hidden cursor-pointer"
+                onClick={() => handleSelectCareer(career.id)}
+              >
+                <div className="bg-gradient-to-r from-indigo-500 to-blue-500 p-6 text-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <Briefcase size={32} />
+                    <span className="bg-white bg-opacity-30 px-3 py-1 rounded-full text-sm font-semibold">
+                      {career.matchScore}% Match
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold">{career.title}</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <p className="text-gray-600 text-sm line-clamp-2">{career.description}</p>
+
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-gray-900 text-sm">Key Skills to Learn:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {career.skills.missing.slice(0, 3).map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {career.skills.missing.length > 3 && (
+                        <span className="inline-block bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">
+                          +{career.skills.missing.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-indigo-600 font-semibold hover:gap-3 transition">
+                    View Roadmap
+                    <ArrowRight size={18} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Roadmap;
